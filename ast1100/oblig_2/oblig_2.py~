@@ -1,0 +1,119 @@
+import matplotlib.pyplot as mpl
+from math import *
+from numpy import*
+
+
+def readfile(star):
+    infile = open(star, 'r')
+
+    times = []
+    lamdas = []
+    fluxs = []
+
+    while True:
+        line = infile.readline()
+        if not line:
+            break
+        numbers = line.split()
+        time = float(numbers[0])
+        lamda = float(numbers[1])
+        flux = float(numbers[2])
+    
+        times.append(time)
+        lamdas.append(lamda)
+        fluxs.append(flux)
+    infile.close()
+    
+    return [times, lamdas, fluxs]
+    
+#plot(x, lamdas)
+
+C = 299792458 # lightspeed
+lamda0 = 656.3*10**(-9) #m
+G = 6.67384*10**(-11) 
+Ms = 0.8*1.9891*10**30 # solar masses
+
+def Vr(lamda):
+    Vr_ = []
+    i = 0
+    for i in range(len(lamda)):
+        Vr_.append( float((lamda[i] - lamda0)/lamda0)*C )
+        i = i + 1
+    return Vr_
+
+star = 'star0.txt'
+
+data = readfile(star)
+
+VrStar = asarray(Vr(data[1]))
+VrStarP = asarray(sum(VrStar)/len(VrStar))
+VrStarR = asarray((VrStar - VrStarP)) # relative
+t = data[0]
+    
+mpl.plot(t, VrStarR)
+mpl.hold('on')
+
+fluxs = data[2]
+#mpl.plot(t, fluxs)
+
+"""
+#by eye
+maxV = VrStar[0]
+minV = VrStar[0]
+        
+Vmom = (maxV - minV)/2
+period = abs(tmax - tmin)*2
+print period
+print Vmom
+    
+Mp = ((period**(1/3))*Vmom*(Ms**(2/3)))/((2*pi*G)**1/3)
+print Mp
+"""
+
+
+def VrModel(t, t0, P, Vr):
+    return Vr*cos((2*pi/P)*(t-t0))
+
+n = 20
+    
+min_t0 = 280000
+max_t0 = 300000
+t0_list = linspace(min_t0, max_t0, n) # theoretical points
+
+min_Vr = 200 
+max_Vr = 260
+Vr_list = linspace(min_Vr, max_Vr, n)
+
+min_period =320000
+max_period =390000
+period_list = linspace(min_period, max_period, n)
+
+best_approx = 23**100
+for i in range(len(t0_list)):
+    for j in range(len(Vr_list)):
+        for k in range(len(period_list)):
+            Vr_Model = VrModel(t, t0_list[i], period_list[k], Vr_list[j])
+            delta = sum(((VrStarR) - (Vr_Model))**2)
+            if delta < best_approx:
+                best_approx = delta
+                best_t0 = t0_list[i]
+                best_Vr = Vr_list[k]
+                best_P = period_list[j]
+
+Vr_model_plot = VrModel(t, best_t0, best_P, best_Vr)
+
+mpl.plot(t, Vr_model_plot)
+mpl.show()
+print best_approx
+print best_t0 
+print best_Vr
+print best_P 
+
+bestMp = ((best_P**(1/3))*best_Vr*(Ms**(2/3)))/((2*pi*G)**1/3)
+print "bestMp = %e" % bestMp
+  
+#x = linspace(0, n, n)
+#plot(x, VrModel_list)
+
+
+
